@@ -1,23 +1,19 @@
-import logo from './logo.svg';
+
 import './App.css';
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+   <canvas id='draw' width='700' height='700' className=' border border-gray-950' onClick={(event)=>{
+    console.log('clicked');
+    //console.log(event)
+    }}
+   onMouseDown={(event)=>{console.log('mouse downn')
+   //console.log(event)
+  }}
+   
+   onMouseMove={(event)=>{console.log('mouse move')
+   console.log(event)}}/>
     </div>
   );
 }
