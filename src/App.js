@@ -8,18 +8,42 @@ function App() {
   const [mouseDown, setMouseDown] = useState(false);
   const [eraserOn, setEraserOn] = useState(false);
   const [size, setSize] = useState({ width: 10, height: 10 });
+  const [lineWidthCustom, setLineWidthCustom] = useState(1);
+  const [drawingRect, setDrawingRect] = useState(false);
+
+  const DrawingCanvas = () => {
+    const canvasRef = useRef(null);
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });
+    const [endPosition, setEndPosition] = useState({ x: 0, y: 0 });
+  
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+  
+      const drawRectangle = () => {
+        const width = endPosition.x - startPosition.x;
+        const height = endPosition.y - startPosition.y;
+  
+        ctx.clearRect(0, 0, canvas.width, can
 
   useEffect(() => {
     // Initialize the canvas context after the component is mounted
     ctx.current = canvas.current.getContext('2d');
   
     // Set the fill color to blue
-    ctx.current.fillStyle = 'blue';
+   // ctx.current.fillStyle = 'blue';
   
     // Draw a filled rectangle covering the entire canvas
-    ctx.current.fillRect(0, 0, canvas.current.width, canvas.current.height);
+    //ctx.current.fillRect(0, 0, canvas.current.width, canvas.current.height);
   }, []);
   
+  function drawRectangle(event){
+
+    console.log(event)
+
+   // ctx.current.fillRect(0, 0, canvas.current.width, canvas.current.height);
+  }
 
   function eraser(event) {
     if (!ctx.current) return;
@@ -57,7 +81,7 @@ function App() {
     }
 
     ctx.current.strokeStyle = 'blue';
-    ctx.current.lineWidth = 1;
+    ctx.current.lineWidth = lineWidthCustom;
     ctx.current.stroke();
 
     prevMouse.current.x = event.clientX;
@@ -89,6 +113,9 @@ function App() {
             eraser(event);
           } else if (mouseDown) {
             drawLine(event);
+          } else if(drawingRect)
+          {
+            drawRectangle(event);
           }
         }}
       />
@@ -116,6 +143,12 @@ function App() {
       >
         eraser size --
       </button>
+      <button className='border border-cyan-400' onClick={()=>{setLineWidthCustom(lineWidthCustom+1)}}>Line Width++</button>
+
+      <button className='border border-cyan-400' onClick={()=>{setLineWidthCustom(lineWidthCustom-1)}}>Line Width--</button>
+
+      <button className='border border-cyan-400' onClick={()=>{setDrawingRect(!drawingRect)}}>Draw rectangle</button>
+
     </div>
   );
 }
