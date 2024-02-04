@@ -1,156 +1,104 @@
-import React, { useState, useRef, useEffect } from 'react';
-import './App.css';
+import React, { useState, useLayoutEffect } from 'react';
+import rough from 'roughjs';
 
-function App() {
-  const canvas = useRef(null);
-  const ctx = useRef(null);
-  const prevMouse = useRef({ x: null, y: null });
-  const [mouseDown, setMouseDown] = useState(false);
-  const [eraserOn, setEraserOn] = useState(false);
-  const [size, setSize] = useState({ width: 10, height: 10 });
-  const [lineWidthCustom, setLineWidthCustom] = useState(1);
-  const [drawingRect, setDrawingRect] = useState(false);
+const generator = rough.generator();
 
-  const DrawingCanvas = () => {
-    const canvasRef = useRef(null);
-    const [isDrawing, setIsDrawing] = useState(false);
-    const [startPosition, setStartPosition] = useState({ x: 0, y: 0 });
-    const [endPosition, setEndPosition] = useState({ x: 0, y: 0 });
-  
-    useEffect(() => {
-      const canvas = canvasRef.current;
+function createElement(x1, y1, x2, y2,type) {
+  if(type==="Line"){
+
+    const roughElement = generator.line(x1, y1, x2, y2);
+    return { x1, y1, x2, y2, roughElement };
+
+  }
+  else{
+    const roughElement = generator.rectangle(x1, y1, x2-x1, y2-y1);
+    return { x1, y1, x2, y2, roughElement };
+  }
+}
+
+const App = () => {
+  const [elements, setElements] = useState([]);
+  const [drawing, setDrawing] = useState(false);
+  const [elementType,setElementType]=useState("line")
+
+  useLayoutEffect(() => {
+    const canvas = document.getElementById('canvas');
+
+    if (canvas) {
       const ctx = canvas.getContext('2d');
-  
-      const drawRectangle = () => {
-        const width = endPosition.x - startPosition.x;
-        const height = endPosition.y - startPosition.y;
-  
-        ctx.clearRect(0, 0, canvas.width, can
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
-  useEffect(() => {
-    // Initialize the canvas context after the component is mounted
-    ctx.current = canvas.current.getContext('2d');
-  
-    // Set the fill color to blue
-   // ctx.current.fillStyle = 'blue';
-  
-    // Draw a filled rectangle covering the entire canvas
-    //ctx.current.fillRect(0, 0, canvas.current.width, canvas.current.height);
-  }, []);
-  
-  function drawRectangle(event){
-
-    console.log(event)
-
-   // ctx.current.fillRect(0, 0, canvas.current.width, canvas.current.height);
-  }
-
-  function eraser(event) {
-    if (!ctx.current) return;
-  
-    const { clientX, clientY } = event;
-    const x0 = prevMouse.current.x;
-    const y0 = prevMouse.current.y;
-  
-    if (x0 !== null && y0 !== null) {
-      const dx = clientX - x0;
-      const dy = clientY - y0;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const steps = Math.max(1, Math.floor(distance / 5));
-  
-      for (let i = 0; i <= steps; i++) {
-        const x = x0 + (dx * i) / steps;
-        const y = y0 + (dy * i) / steps;
-        ctx.current.clearRect(x, y, size.width, size.height);
-      }
+      const rc = rough.canvas(canvas);
+      elements.forEach(({ roughElement }) => rc.draw(roughElement));
     }
-  
-    prevMouse.current.x = clientX;
-    prevMouse.current.y = clientY;
-  }
-  
-  function drawLine(event) {
-    if (!ctx.current) return; // Check if the context is initialized
+  }, [elements]);
 
-    ctx.current.beginPath();
-    if (prevMouse.current.x === null) {
-      ctx.current.arc(event.clientX, event.clientY, 1, 0, Math.PI * 2, true);
-    } else {
-      ctx.current.moveTo(prevMouse.current.x, prevMouse.current.y);
-      ctx.current.lineTo(event.clientX, event.clientY);
-    }
+  const handleMouseDown = (e) => {
+    setDrawing(true);
+    const element = createElement(e.clientX, e.clientY, e.clientX, e.clientY,elementType);
+    setElements((prevState) => [...prevState, element]);
+  };
 
-    ctx.current.strokeStyle = 'blue';
-    ctx.current.lineWidth = lineWidthCustom;
-    ctx.current.stroke();
+  const handleMouseMove = (e) => {
+    if (!drawing) return;
+    const lastElementIndex = elements.length - 1;
+    const { x1, y1 } = elements[lastElementIndex];
+    const updatedElement = createElement(x1, y1, e.clientX, e.clientY,elementType);
+    const elementsCopy = [...elements];
+    elementsCopy[lastElementIndex] = updatedElement;
+    setElements(elementsCopy);
 
-    prevMouse.current.x = event.clientX;
-    prevMouse.current.y = event.clientY;
-  }
+
+    /*const handleMouseMove = (event) => {
+  if (!drawing) return;
+
+  const { clientX, clientY } = event;
+  const index = elements.length - 1;
+
+  setElements((prevElements) =>
+    prevElements.map((element, i) =>
+      i === index ? createElement(element.x1, element.y1, clientX, clientY) : element
+    )
+  );
+};
+ */
+
+  };
+
+  const handleMouseUp = () => {
+    setDrawing(false);
+  };
 
   return (
-    <div className="App">
+    <div>
+      <div style={{ position: "fixed" }}>
+  <input
+    type="radio"
+    id="Line"
+    checked={elementType === "Line"} // Corrected the checked attribute
+    onChange={() => setElementType("Line")}
+  />
+  <label htmlFor="Line">Line</label>
+
+  <input
+    type="radio"
+    id="rectangle"
+    checked={elementType === "rectangle"} // Corrected the checked attribute
+    onChange={() => setElementType("rectangle")}
+  />
+  <label htmlFor="rectangle">Rectangle</label>
+</div>
+
       <canvas
-        id="draw"
-        width="700"
-        height="700"
-        className="border border-gray-950"
-        ref={canvas}
-        onClick={() => {
-          console.log('clicked');
-        }}
-        onMouseDown={() => {
-          console.log('mouse down');
-          setMouseDown(true);
-        }}
-        onMouseUp={() => {
-          console.log('mouse up');
-          setMouseDown(false);
-          prevMouse.current = { x: null, y: null };
-        }}
-        onMouseMove={(event) => {
-          if (eraserOn && mouseDown) {
-            eraser(event);
-          } else if (mouseDown) {
-            drawLine(event);
-          } else if(drawingRect)
-          {
-            drawRectangle(event);
-          }
-        }}
-      />
-      <button
-        className='border border-cyan-400'
-        onClick={() => {
-          setEraserOn(!eraserOn);
-        }}
-      >
-        eraser
-      </button>
-      <button
-        className='border border-cyan-400'
-        onClick={() => {
-          setSize({ width: size.width + 10, height: size.height + 10 });
-        }}
-      >
-        eraser size ++
-      </button>
-      <button
-        className='border border-cyan-400'
-        onClick={() => {
-          setSize({ width: size.width - 10, height: size.height - 10 });
-        }}
-      >
-        eraser size --
-      </button>
-      <button className='border border-cyan-400' onClick={()=>{setLineWidthCustom(lineWidthCustom+1)}}>Line Width++</button>
-
-      <button className='border border-cyan-400' onClick={()=>{setLineWidthCustom(lineWidthCustom-1)}}>Line Width--</button>
-
-      <button className='border border-cyan-400' onClick={()=>{setDrawingRect(!drawingRect)}}>Draw rectangle</button>
-
+        id="canvas"
+        width={window.innerWidth}
+        height={window.innerHeight}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+      ></canvas>
     </div>
   );
-}
+};
 
 export default App;
