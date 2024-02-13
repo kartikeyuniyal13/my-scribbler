@@ -9,7 +9,7 @@ function createElement(id, x1, y1, x2, y2, type) {
     const roughElement = generator.line(x1, y1, x2, y2);
     return { id, x1, y1, x2, y2, roughElement, type };
   }
-  else if  (type === "rectangle"){
+  else if (type === "rectangle") {
     const roughElement = generator.rectangle(x1, y1, x2 - x1, y2 - y1);
     return { id, x1, y1, x2, y2, roughElement, type };
   }
@@ -21,6 +21,7 @@ const App = () => {
   const [selection, setSelection] = useState(false)
   const [moving, setMoving] = useState(false);
   const [selectedElement, setSelectedElement] = useState()
+  const [offset,setOffset]=useState([0,0,0,0])
 
   function distance(x1, y1, x2, y2) {
     return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
@@ -28,44 +29,61 @@ const App = () => {
 
   function selectElementFunc(x, y, element) {
     const { x1, y1, x2, y2, type } = element;
-  
+
     if (type === "Line") {
       const dist =
         distance(x1, y1, x2, y2) - (distance(x1, y1, x, y) + distance(x2, y2, x, y));
       return Math.abs(dist) < 1;
     } else if (type === "rectangle") {
-      // Check if the point (x, y) is within the rectangle
       return x >= Math.min(x1, x2) && x <= Math.max(x1, x2) && y >= Math.min(y1, y2) && y <= Math.max(y1, y2);
     }
-  
-    // Handle other types if needed
     return false;
   }
-  
-  
+
+
 
   function handleSelectElement(e) {
     const { clientX, clientY } = e;
-    setSelectedElement(elements.find((element) =>
+    const foundElement = elements.find((element) =>
       selectElementFunc(clientX, clientY, element)
-    ))
+    );
+  
+    if (foundElement) {
+      setSelectedElement(foundElement);
+  
+      const { x1, y1, x2, y2, id, type } = foundElement;
+  
+      setOffset([
+        e.clientX - x1,
+        e.clientY - y1,
+        x2 - e.clientX,
+        y2 - e.clientY
+      ]);
+  
+      setMoving(true);
+    }
   }
+  
 
   useLayoutEffect(() => {
     const canvas = document.getElementById('canvas');
-  
+
     if (canvas) {
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
       const rc = rough.canvas(canvas);
       elements.forEach(({ roughElement }) => rc.draw(roughElement));
     }
-  },  [elements, selection]);
-  
+  }, [elements, selection,offset]);
+
 
   const handleMouseDown = (e) => {
     if (selection) {
       handleSelectElement(e);
+
+     
+        
+      
       setMoving(true);
     }
     else {
@@ -74,8 +92,6 @@ const App = () => {
       setElements((prevState) => [...prevState, element]);
     }
   };
-
-
 
   function updateElement(id, x1, y1, x2, y2, type) {
     // const updatedElement = createElement(id,x1,y1,x2,y2,type);
@@ -94,49 +110,51 @@ const App = () => {
       const lastElementIndex = elements.length - 1;
       const { x1, y1, id, type } = elements[lastElementIndex];
       updateElement(id, x1, y1, e.clientX, e.clientY, type);
-    } 
+    }
     if (selection && selectedElement && moving) {
-      const { x1, y1, id, type } = selectedElement;
-      updateElement(id, x1, y1, e.clientX, e.clientY, type);
+      const {  id, type } = selectedElement;
+       updateElement(id, e.clientX-offset[0],e.clientY-offset[1], e.clientX+offset[2], e.clientY+offset[3], type);
     }
   };
-  
+
 
   const handleMouseUp = () => {
     setDrawing(false);
-    setMoving(false)
+    setSelectedElement(null)
+    setOffset([]);
+    setMoving(false);
   };
 
   return (
     <div>
       <div style={{ position: "fixed" }}>
-      <input
-  type="radio"
-  id="Selection"
-  name="elementType"
-  checked={elementType === null}
-  onChange={() => {
-    setElementType(null);
-    setSelection(true);
-    
-    setDrawing(false); // Move this line after setSelection(true)
-  }}
-/>
+        <input
+          type="radio"
+          id="Selection"
+          name="elementType"
+          checked={elementType === null}
+          onChange={() => {
+            setElementType(null);
+            setSelection(true);
+
+            setDrawing(false); 
+          }}
+        />
 
         <label htmlFor="Selection">Selection</label>
-  
+
         <input
           type="radio"
           id="Line"
           name="elementType"
           checked={elementType === "Line"}
           onChange={() => {
-          setElementType("Line");
-          setSelection(false);
-        }}
+            setElementType("Line");
+            setSelection(false);
+          }}
         />
         <label htmlFor="Line">Line</label>
-  
+
         <input
           type="radio"
           id="rectangle"
@@ -145,11 +163,11 @@ const App = () => {
           onChange={() => {
             setElementType("rectangle")
             setSelection(false);
-        }}
+          }}
         />
         <label htmlFor="rectangle">Rectangle</label>
       </div>
-  
+
       <canvas
         id="canvas"
         width={window.innerWidth}
@@ -160,6 +178,6 @@ const App = () => {
       ></canvas>
     </div>
   );
-        }  
+}
 
 export default App;
