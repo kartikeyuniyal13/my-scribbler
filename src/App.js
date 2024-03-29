@@ -16,12 +16,12 @@ function createElement(id, x1, y1, x2, y2, type) {
 }
 const App = () => {
   const [elements, setElements] = useState([]);
-  const [drawing, setDrawing] = useState(false);
   const [elementType, setElementType] = useState()
+  const [selectedElement, setSelectedElement] = useState()
+  const [drawing, setDrawing] = useState(false);
   const [selection, setSelection] = useState(false)
   const [resize,setResize]=useState(false)
   const [moving, setMoving] = useState(false);
-  const [selectedElement, setSelectedElement] = useState()
   const [offset, setOffset] = useState([0, 0, 0, 0])
   function distance(x1, y1, x2, y2) {
     return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
@@ -31,7 +31,7 @@ const App = () => {
     return Math.abs(x - x1) < 8 && Math.abs(y - y1) < 8 ? name : null;
   };
 
-  const cursorForPosition = (position) => {
+  const cursorForPosition = position => {
     switch (position) {
       case "tl":
       case "br":
@@ -45,13 +45,9 @@ const App = () => {
         return "move";
     }
   };
-  
-  
-
 
   const selectElementFunc = (x, y, element) => {
     const { type, x1, x2, y1, y2 } = element;
-
     if (type === "rectangle") {
       const topLeft = nearPoint(x, y, x1, y1, "tl");
       const topRight = nearPoint(x, y, x2, y1, "tr");
@@ -64,42 +60,47 @@ const App = () => {
       const a = { x: x1, y: y1 };
       const b = { x: x2, y: y2 };
       const c = { x, y };
-      const dist =
-      Math.abs((y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1) /
-      Math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2);
-
-      const start = nearPoint(x, y, x1, y1, "start");
-      const end = nearPoint(x, y, x2, y2, "end");
-      const position = start || end;
-      const inside = Math.abs(dist) < 5 ? "inside" : null;
-      return { ...element, position: position, inside: inside }
+      const distToSegment = Math.abs(distance(a.x, a.y, b.x, b.y) - (distance(a.x, a.y, c.x, c.y) + distance(b.x, b.y, c.x, c.y)));
+       console.log("disttosegemnt",distToSegment)
+      const inside = distToSegment < 0.5 ? "inside" : null;
+      if (inside) {
+        const start = nearPoint(x, y, x1, y1, "start");
+        const end = nearPoint(x, y, x2, y2, "end");
+        const position = start || end;
+  
+        return { ...element, position: position, inside: inside };
+      } else {
+        return { ...element, position: null, inside: null };
+      }
     }
   };
 
   function calMinDist(x, y, element) {
     const { x1, y1, x2, y2, id, type } = element;
-
+  
     if (type === "Line") {
-      const dist = Math.abs(
-        (y2 - y1) * x - (x2 - x1) * y + x2 * y1 - y2 * x1
-      ) / Math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2);
-
-      return { ...element, dist: dist };
+      const a = { x: x1, y: y1 };
+      const b = { x: x2, y: y2 };
+      const c = { x, y };
+      const offset = distance(a.x, a.y, b.x, b.y) - (distance(a.x, a.y, c.x, c.y) + distance(b.x, b.y, c.x, c.y));
+      console.log("offset",offset)
+   var dist= Math.abs(offset);
+    return { ...element, dist: dist };
     } else if (type === "rectangle") {
       const dist = Math.min(
-        distance(x, y, x, y1),
-        distance(x, y, x, y2),
-        distance(x, y, x1, y),
-        distance(x, y, x2, y)
+        distance(x, y, x1, y1), 
+        distance(x, y, x1, y2),
+        distance(x, y, x2, y1), 
+        distance(x, y, x2, y2)  
       );
-      return { ...element, dist:dist };
+      return { ...element, dist: dist };
     }
   }
-
-  function handleSelectElement(e) {
+  
+  async function handleSelectElement(e) {
     const { clientX, clientY } = e;
 
-console.log("Cursor Coordinates:", clientX, clientY);
+    console.log("Cursor Coordinates:", clientX, clientY);
     console.log("Elements", elements);
     const elementPos = elements.map((element) =>
     selectElementFunc(clientX, clientY, element)
@@ -111,7 +112,7 @@ console.log("Cursor Coordinates:", clientX, clientY);
       const foundElementsWithDist = elementPos.filter((element) => (element.inside !== null)).map((element) =>
         calMinDist(clientX, clientY, element)
       );
-      console.log("Found Elements with Distance:", foundElementsWithDist);
+     console.log("Found Elements with Distance:", foundElementsWithDist);
 
       if (foundElementsWithDist.length > 0) {
         finalElement = foundElementsWithDist.reduce((minElement, currentElement) =>
@@ -139,7 +140,7 @@ console.log("Cursor Coordinates:", clientX, clientY);
   useLayoutEffect(() => {
     const canvas = document.getElementById('canvas');
 
-console.log(selectedElement)
+console.log(elements)
     if (canvas) {
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
@@ -149,11 +150,11 @@ console.log(selectedElement)
   }, [elements, selection, offset]);
 
 
-  const handleMouseDown = (e) => {
+  const handleMouseDown = async (e) => {
     
     if (selection) {
-      handleSelectElement(e);
-      e.target.style.cursor = selectedElement && resize
+    await handleSelectElement(e);
+      e.target.style.cursor = selectedElement
         ? cursorForPosition(selectedElement.position)
         : "default";
     }
@@ -161,6 +162,7 @@ console.log(selectedElement)
       setDrawing(true);
       const element = createElement(uuidv4(), e.clientX, e.clientY, e.clientX, e.clientY, elementType);
       setElements((prevState) => [...prevState, element]);
+      // console.log("eleemnt in handlemouse down",element)
       setSelectedElement(element)
     }
   };
@@ -170,7 +172,6 @@ console.log(selectedElement)
     // const elementsCopy = [...elements];
     // elementsCopy[lastElementIndex] = updatedElement;
     // setElements(elementsCopy);
-
     setElements((prevElements) =>
       prevElements.map((element) =>
         element.id === id ? createElement(id, x1, y1, x2, y2, type) : element
@@ -203,27 +204,54 @@ console.log(selectedElement)
       updateElement(id, x1, y1, e.clientX, e.clientY, type);
     }
     if (selection && selectedElement && moving) {
+
+      console.log("Selected Element:mouuse move", selectedElement);
       const { id, type } = selectedElement;
       const [startX, startY, endX, endY] = offset;
-  
       const newX1 = e.clientX - startX;
       const newY1 = e.clientY - startY;
       const newX2 = e.clientX + endX;
       const newY2 = e.clientY + endY;
-  
       updateElement(id, newX1, newY1, newX2, newY2, type);
     }
     if (selection && selectedElement && resize) {
-      let { id, type, position, x1, x2, y1, y2 } = selectedElement;
+      const { id, type, position, x1, x2, y1, y2 } = selectedElement;
   
       // Update the coordinates based on the resize position
-      ({ x1, x2, y1, y2 } = resizeCoordinates(e.clientX, e.clientY, position, x1, x2, y1, y2));
+      let newX1 = x1,
+          newX2 = x2,
+          newY1 = y1,
+          newY2 = y2;
   
-      updateElement(id, x1, y1, x2, y2, type);
+      switch (position) {
+        case "tl":
+        case "start":
+          newX1 = e.clientX;
+          newY1 = e.clientY;
+          break;
+        case "tr":
+          newX2 = e.clientX;
+          newY1 = e.clientY;
+          break;
+        case "bl":
+          newX1 = e.clientX;
+          newY2 = e.clientY;
+          break;
+        case "br":
+        case "end":
+          newX2 = e.clientX;
+          newY2 = e.clientY;
+          break;
+        default:
+          break;
+      }
+  
+      updateElement(id, newX1, newY1, newX2, newY2, type);
     }
   };
   
   const adjustElementCoordinates = element => {
+    console.log("element passed in adjustElementCoordinates", element);
     const { type, x1, y1, x2, y2 } = element;
     if (type === "rectangle") {
       const minX = Math.min(x1, x2);
@@ -241,16 +269,29 @@ console.log(selectedElement)
     }
   };
 
+  const findElement = (id) => {
+    const foundElement = elements.find((element) => element.id === id);
+    return foundElement || null;
+  };
+  
   const handleMouseUp = () => {
-   
-  
-   
-      const adjustedCoordinates = adjustElementCoordinates(selectedElement);
-      const { x1, y1, x2, y2,id,type} = adjustedCoordinates;
 
-      updateElement(id, x1, y1, x2, y2, type);
-    
-  
+
+
+    if(selectedElement){
+      const Elementid = selectedElement.id;
+
+
+        const element = findElement(Elementid);
+
+          const {id,type} = element;
+          const adjustedCoordinates = adjustElementCoordinates(element);
+          console.log("just drawn element", adjustedCoordinates);
+          const { x1, y1, x2, y2,} = adjustedCoordinates;
+          console.log(x1, y1, x2, y2,id,type)
+          updateElement(id, x1, y1, x2, y2, type);
+          
+        }
     setDrawing(false);
     setSelectedElement(null)
     setOffset([]);
