@@ -21,9 +21,60 @@ function createElement(id, x1, y1, x2, y2, type) {
   }
 }
 
+
+const useHistory=(initialState)=>{
+  // console.log(initialState)
+  const [index,setIndex]=useState(0);
+  const [history,setHistory]=useState([initialState]);
+
+  const setState= (action,overwrite=false)=>{
+    const newState= typeof action==='function'? action(history[index]):action;
+
+  
+
+      if(overwrite){
+        const dummyHistory=[...history];
+       // console.log(dummyHistory[index])
+        dummyHistory[index]=newState;
+        setHistory(dummyHistory)
+     }
+       else
+     {
+       
+       setHistory((prevState)=>[...prevState,newState])
+       setIndex((prevState)=>prevState+1)
+     }
+    
+    
+
+   
+    if(history.length>2) {
+      const dummyHistory=history[history.length-1];
+      console.log(dummyHistory[dummyHistory.length-1])
+      const [x1,x2,y1,y2]=dummyHistory
+      if(x1===x2 && y1===y2){
+        const newHistory=[...history].slice(0,history.length-1)
+        setHistory([...newHistory]);
+    }}
+
+         
+    }
+
+    // dummyHistory[index]=newState;
+    // setHistory(dummyHistory)
+
+  
+
+ const undo=()=>{index>0 && setIndex((prevState)=>prevState-1)};
+ const redo=()=>{index < history.length-1 && setIndex((prevState)=>prevState+1)};
+  return [history[index],setState,undo,redo];
+}
+
+
 const App = () => {
+  const [elements, setElements,undo,redo] = useHistory([]);
+
   const { user, isAuthenticated, isLoading } = useAuth0();
-  const [elements, setElements] = useState([]);
   const [elementType, setElementType] = useState();
   const [selectedElement, setSelectedElement] = useState();
   const [drawing, setDrawing] = useState(false);
@@ -31,11 +82,11 @@ const App = () => {
   const [resize, setResize] = useState(false);
   const [moving, setMoving] = useState(false);
   const [offset, setOffset] = useState([0, 0, 0, 0]);
-
+  
   function distance(x1, y1, x2, y2) {
     return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-  }
-
+    }
+    
   const nearPoint = (x, y, x1, y1, name) => {
     return Math.abs(x - x1) < 8 && Math.abs(y - y1) < 8 ? name : null;
   };
@@ -141,7 +192,7 @@ const App = () => {
   useLayoutEffect(() => {
     const canvas = document.getElementById('canvas');
 
-    console.log(elements)
+    //console.log(elements)
     if (canvas) {
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
@@ -153,10 +204,14 @@ const App = () => {
 
   const handleMouseDown = async (e) => {
     if (selection) {
+      setElements(prevState=> prevState);
       await handleSelectElement(e);
       e.target.style.cursor = selectedElement
         ? cursorForPosition(selectedElement.position)
         : "default";
+
+
+        
     }
     else {
       setDrawing(true);
@@ -173,7 +228,7 @@ const App = () => {
       updateElement(id, x1, y1, e.clientX, e.clientY, type);
     }
     if (selection && selectedElement && moving) {
-      console.log("Selected Element:mouuse move", selectedElement);
+      console.log("Selected Element:mouse move", selectedElement);
       const { id, type } = selectedElement;
       const [startX, startY, endX, endY] = offset;
       const newX1 = e.clientX - startX;
@@ -221,10 +276,22 @@ const App = () => {
       const element = findElement(Elementid);
       const {id,type} = element;
       const adjustedCoordinates = adjustElementCoordinates(element);
-      console.log("just drawn element", adjustedCoordinates);
+      // console.log("just drawn element", adjustedCoordinates);
       const { x1, y1, x2, y2 } = adjustedCoordinates;
-      console.log(x1, y1, x2, y2,id,type)
+      // console.log(x1, y1, x2, y2,id,type)
+
+
       updateElement(id, x1, y1, x2, y2, type);
+      
+    }
+    if(drawing){
+      const lastElementIndex = elements.length - 1;
+      const { x1, y1,x2,y2} = elements[lastElementIndex];
+      if(x1===x2 && y1===y2)
+        {
+          const updatedState = [...elements].slice(0,elements.length-1 );
+          setElements([...updatedState]);
+        }
     }
     setDrawing(false);
     setSelectedElement(null)
@@ -236,8 +303,8 @@ const App = () => {
   const updateElement = (id, x1, y1, x2, y2, type) => {
     setElements((prevElements) =>
       prevElements.map((element) =>
-        element.id === id ? createElement(id, x1, y1, x2, y2, type) : element
-      )
+        element.id === id ? (createElement(id, x1, y1, x2, y2, type)) : element
+      ),true
     );
   };
 
@@ -328,7 +395,11 @@ const App = () => {
 
 
       </div>
+     <div style={{ position: "fixed",bottom:0,padding:10 }}>
+          <button onClick={undo}> undo</button>
+          <button onClick={redo}> redo</button>
 
+     </div>
       <canvas
         id="canvas"
         width={window.innerWidth}
