@@ -5,9 +5,6 @@ import LoginButton from './Components/LoginButton';
 import LogoutButton from './Components/LogoutButton';
 import { useAuth0 } from '@auth0/auth0-react';
 
-
-
-
 const generator = rough.generator();
 
 function createElement(id, x1, y1, x2, y2, type) {
@@ -15,65 +12,36 @@ function createElement(id, x1, y1, x2, y2, type) {
     const roughElement = generator.line(x1, y1, x2, y2);
     return { id, x1, y1, x2, y2, roughElement, type };
   }
-  else if (type === "rectangle") {
+  if (type === "rectangle") {
     const roughElement = generator.rectangle(x1, y1, x2 - x1, y2 - y1);
     return { id, x1, y1, x2, y2, roughElement, type };
   }
 }
 
 
-const useHistory=(initialState)=>{
-  // console.log(initialState)
-  const [index,setIndex]=useState(0);
-  const [history,setHistory]=useState([initialState]);
-
-  const setState= (action,overwrite=false)=>{
-    const newState= typeof action==='function'? action(history[index]):action;
-
+  const useHistory = (initialState) => {
+    const [history, setHistory] = useState([initialState]);
+    const [index, setIndex] = useState(0);
   
-
-      if(overwrite){
-        const dummyHistory=[...history];
-       // console.log(dummyHistory[index])
-        dummyHistory[index]=newState;
-        setHistory(dummyHistory)
-     }
-       else
-     {
-       
-       setHistory((prevState)=>[...prevState,newState])
-       setIndex((prevState)=>prevState+1)
-     }
-    
-    
-
-   
-    if(history.length>2) {
-      const dummyHistory=history[history.length-1];
-      console.log(dummyHistory[dummyHistory.length-1])
-      const [x1,x2,y1,y2]=dummyHistory
-      if(x1===x2 && y1===y2){
-        const newHistory=[...history].slice(0,history.length-1)
-        setHistory([...newHistory]);
-    }}
-
-         
-    }
-
-    // dummyHistory[index]=newState;
-    // setHistory(dummyHistory)
-
+    const setState = (action, overwrite = false) => {
+      const newState = typeof action === 'function' ? action(history[index]) : action;
+      setHistory((prevHistory) => {
+        const updatedHistory = overwrite
+          ? [...prevHistory.slice(0, index), newState, ...prevHistory.slice(index + 1)]
+          : [...prevHistory.slice(0, index + 1), newState];
+        return updatedHistory;
+      });
+      if (!overwrite) setIndex(index + 1);
+    };
   
-
- const undo=()=>{index>0 && setIndex((prevState)=>prevState-1)};
- const redo=()=>{index < history.length-1 && setIndex((prevState)=>prevState+1)};
-  return [history[index],setState,undo,redo];
-}
-
+    const undo = () => { index > 0 && setIndex(index - 1); };
+    const redo = () => { index < history.length - 1 && setIndex(index + 1); };
+  
+    return [history[index], setState, undo, redo];
+  };
 
 const App = () => {
-  const [elements, setElements,undo,redo] = useHistory([]);
-
+  const [elements, setElements, undo, redo] = useHistory([]);
   const { user, isAuthenticated, isLoading } = useAuth0();
   const [elementType, setElementType] = useState();
   const [selectedElement, setSelectedElement] = useState();
@@ -82,11 +50,11 @@ const App = () => {
   const [resize, setResize] = useState(false);
   const [moving, setMoving] = useState(false);
   const [offset, setOffset] = useState([0, 0, 0, 0]);
-  
+
   function distance(x1, y1, x2, y2) {
     return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-    }
-    
+  }
+
   const nearPoint = (x, y, x1, y1, name) => {
     return Math.abs(x - x1) < 8 && Math.abs(y - y1) < 8 ? name : null;
   };
@@ -152,20 +120,16 @@ const App = () => {
       return { ...element, dist: dist };
     }
   }
-  
+
   async function handleSelectElement(e) {
     const { clientX, clientY } = e;
-    console.log("Cursor Coordinates:", clientX, clientY);
-    console.log("Elements", elements);
     const elementPos = elements.map((element) => selectElementFunc(clientX, clientY, element));
-    console.log("Element Positions:", elementPos);
     let finalElement = elementPos.find((element) => element.position !== null);
 
     if (finalElement == null) {
       const foundElementsWithDist = elementPos.filter((element) => (element.inside !== null)).map((element) =>
         calMinDist(clientX, clientY, element)
       );
-      console.log("Found Elements with Distance:", foundElementsWithDist);
 
       if (foundElementsWithDist.length > 0) {
         finalElement = foundElementsWithDist.reduce((minElement, currentElement) =>
@@ -175,14 +139,11 @@ const App = () => {
     }
     if (finalElement) {
       setSelectedElement(finalElement);
-      console.log("Final Selected Element:", finalElement);
-      console.log("Final Selected Element:", selectedElement);
 
       const { x1, y1, x2, y2, id, type, position } = finalElement;
       if (position != null) {
         setResize(true);
-      }
-      else {
+      } else {
         setOffset([e.clientX - x1, e.clientY - y1, x2 - e.clientX, y2 - e.clientY]);
         setMoving(true);
       }
@@ -192,7 +153,6 @@ const App = () => {
   useLayoutEffect(() => {
     const canvas = document.getElementById('canvas');
 
-    //console.log(elements)
     if (canvas) {
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
@@ -201,22 +161,16 @@ const App = () => {
     }
   }, [elements, selection, offset]);
 
-
   const handleMouseDown = async (e) => {
     if (selection) {
-      setElements(prevState=> prevState);
       await handleSelectElement(e);
       e.target.style.cursor = selectedElement
         ? cursorForPosition(selectedElement.position)
         : "default";
-
-
-        
-    }
-    else {
+    } else {
       setDrawing(true);
       const element = createElement(uuidv4(), e.clientX, e.clientY, e.clientX, e.clientY, elementType);
-      setElements((prevState) => [...prevState, element]);
+      setElements(prevState => [...prevState, element]);
       setSelectedElement(element);
     }
   };
@@ -228,7 +182,6 @@ const App = () => {
       updateElement(id, x1, y1, e.clientX, e.clientY, type);
     }
     if (selection && selectedElement && moving) {
-      console.log("Selected Element:mouse move", selectedElement);
       const { id, type } = selectedElement;
       const [startX, startY, endX, endY] = offset;
       const newX1 = e.clientX - startX;
@@ -239,10 +192,7 @@ const App = () => {
     }
     if (selection && selectedElement && resize) {
       const { id, type, position, x1, x2, y1, y2 } = selectedElement;
-      let newX1 = x1,
-          newX2 = x2,
-          newY1 = y1,
-          newY2 = y2;
+      let newX1 = x1, newX2 = x2, newY1 = y1, newY2 = y2;
       switch (position) {
         case "tl":
         case "start":
@@ -269,42 +219,36 @@ const App = () => {
       e.target.style.cursor = cursorForPosition(position);
     }
   };
-  
+
   const handleMouseUp = () => {
-    if(selectedElement){
-      const Elementid = selectedElement.id;
-      const element = findElement(Elementid);
-      const {id,type} = element;
-      const adjustedCoordinates = adjustElementCoordinates(element);
-      // console.log("just drawn element", adjustedCoordinates);
-      const { x1, y1, x2, y2 } = adjustedCoordinates;
-      // console.log(x1, y1, x2, y2,id,type)
+    if (selectedElement) {
+      const element = findElement(selectedElement.id);
 
+      if (element) {
+        const { id, type } = element;
+        const adjustedCoordinates = adjustElementCoordinates(element);
+        const { x1, y1, x2, y2 } = adjustedCoordinates;
 
-      updateElement(id, x1, y1, x2, y2, type);
-      
+        updateElement(id, x1, y1, x2, y2, type);
+      }
     }
-    if(drawing){
-      const lastElementIndex = elements.length - 1;
-      const { x1, y1,x2,y2} = elements[lastElementIndex];
-      if(x1===x2 && y1===y2)
-        {
-          const updatedState = [...elements].slice(0,elements.length-1 );
-          setElements([...updatedState]);
-        }
+
+    if (drawing) {
+      setDrawing(false);
+      setSelection(true);
     }
-    setDrawing(false);
-    setSelectedElement(null)
+
+    setSelectedElement(null);
     setOffset([]);
     setMoving(false);
-    setResize(false)
+    setResize(false);
   };
 
   const updateElement = (id, x1, y1, x2, y2, type) => {
-    setElements((prevElements) =>
-      prevElements.map((element) =>
-        element.id === id ? (createElement(id, x1, y1, x2, y2, type)) : element
-      ),true
+    setElements(prevElements =>
+      prevElements.map(element =>
+        element.id === id ? createElement(id, x1, y1, x2, y2, type) : element
+      ), true
     );
   };
 
@@ -324,7 +268,7 @@ const App = () => {
         return null;
     }
   };
-  
+
   const adjustElementCoordinates = element => {
     const { type, x1, y1, x2, y2 } = element;
     if (type === "rectangle") {
@@ -343,12 +287,23 @@ const App = () => {
   };
 
   const findElement = (id) => {
-    const foundElement = elements.find((element) => element.id === id);
-    return foundElement || null;
+    return elements.find((element) => element.id === id) || null;
+  };
+
+  const handleUndo = () => {
+    setDrawing(false);
+    setSelection(true);
+    undo();
   };
   
+  const handleRedo = () => {
+    setDrawing(false);
+    setSelection(true);
+    redo();
+  };
+  
+
   return (
-    
     <div>
       <div style={{ position: "fixed" }}>
         <input
@@ -382,24 +337,20 @@ const App = () => {
           name="elementType"
           checked={elementType === "rectangle"}
           onChange={() => {
-            setElementType("rectangle")
+            setElementType("rectangle");
             setSelection(false);
           }}
         />
         <label htmlFor="rectangle">Rectangle</label>
 
-
         <button style={{ backgroundColor: 'blue', color: 'white' }}>
-          { (isAuthenticated)? <LogoutButton/>:<LoginButton/>}
+          {isAuthenticated ? <LogoutButton /> : <LoginButton />}
         </button>
-
-
       </div>
-     <div style={{ position: "fixed",bottom:0,padding:10 }}>
-          <button onClick={undo}> undo</button>
-          <button onClick={redo}> redo</button>
-
-     </div>
+      <div style={{ position: "fixed", bottom: 0, padding: 10 }}>
+      <button onClick={handleUndo}>Undo</button>
+      <button onClick={handleRedo}>Redo</button>
+      </div>
       <canvas
         id="canvas"
         width={window.innerWidth}
