@@ -18,6 +18,7 @@ function createElement(id, x1, y1, x2, y2, type) {
   }
 }
 
+<<<<<<< HEAD
 
   const useHistory = (initialState) => {
     const [history, setHistory] = useState([initialState]);
@@ -42,7 +43,11 @@ function createElement(id, x1, y1, x2, y2, type) {
 
 const App = () => {
   const [elements, setElements, undo, redo] = useHistory([]);
+=======
+const App = () => {
+>>>>>>> origin/main
   const { user, isAuthenticated, isLoading } = useAuth0();
+  const [elements, setElements] = useState([]);
   const [elementType, setElementType] = useState();
   const [selectedElement, setSelectedElement] = useState();
   const [drawing, setDrawing] = useState(false);
@@ -153,6 +158,10 @@ const App = () => {
   useLayoutEffect(() => {
     const canvas = document.getElementById('canvas');
 
+<<<<<<< HEAD
+=======
+    console.log(elements)
+>>>>>>> origin/main
     if (canvas) {
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
@@ -167,7 +176,12 @@ const App = () => {
       e.target.style.cursor = selectedElement
         ? cursorForPosition(selectedElement.position)
         : "default";
+<<<<<<< HEAD
     } else {
+=======
+    }
+    else {
+>>>>>>> origin/main
       setDrawing(true);
       const element = createElement(uuidv4(), e.clientX, e.clientY, e.clientX, e.clientY, elementType);
       setElements(prevState => [...prevState, element]);
@@ -182,6 +196,10 @@ const App = () => {
       updateElement(id, x1, y1, e.clientX, e.clientY, type);
     }
     if (selection && selectedElement && moving) {
+<<<<<<< HEAD
+=======
+      console.log("Selected Element:mouuse move", selectedElement);
+>>>>>>> origin/main
       const { id, type } = selectedElement;
       const [startX, startY, endX, endY] = offset;
       const newX1 = e.clientX - startX;
@@ -221,6 +239,7 @@ const App = () => {
   };
 
   const handleMouseUp = () => {
+<<<<<<< HEAD
     if (selectedElement) {
       const element = findElement(selectedElement.id);
 
@@ -236,6 +255,17 @@ const App = () => {
     if (drawing) {
       setDrawing(false);
       setSelection(true);
+=======
+    if(selectedElement){
+      const Elementid = selectedElement.id;
+      const element = findElement(Elementid);
+      const {id,type} = element;
+      const adjustedCoordinates = adjustElementCoordinates(element);
+      console.log("just drawn element", adjustedCoordinates);
+      const { x1, y1, x2, y2 } = adjustedCoordinates;
+      console.log(x1, y1, x2, y2,id,type)
+      updateElement(id, x1, y1, x2, y2, type);
+>>>>>>> origin/main
     }
 
     setSelectedElement(null);
@@ -245,10 +275,17 @@ const App = () => {
   };
 
   const updateElement = (id, x1, y1, x2, y2, type) => {
+<<<<<<< HEAD
     setElements(prevElements =>
       prevElements.map(element =>
         element.id === id ? createElement(id, x1, y1, x2, y2, type) : element
       ), true
+=======
+    setElements((prevElements) =>
+      prevElements.map((element) =>
+        element.id === id ? createElement(id, x1, y1, x2, y2, type) : element
+      )
+>>>>>>> origin/main
     );
   };
 
@@ -347,10 +384,14 @@ const App = () => {
           {isAuthenticated ? <LogoutButton /> : <LoginButton />}
         </button>
       </div>
+<<<<<<< HEAD
       <div style={{ position: "fixed", bottom: 0, padding: 10 }}>
       <button onClick={handleUndo}>Undo</button>
       <button onClick={handleRedo}>Redo</button>
       </div>
+=======
+
+>>>>>>> origin/main
       <canvas
         id="canvas"
         width={window.innerWidth}
